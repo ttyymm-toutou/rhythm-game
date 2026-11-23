@@ -188,3 +188,32 @@ html,body{
     for(let i = notes.length - 1; i >= 0; i--){
       const n = notes[i];
       let t
+      <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>下落节奏游戏</title>
+<style>
+#startBtn {
+  padding: 12px 30px;
+  font-size: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,#40bfff,#f888dd);
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+</style>
+</head>
+<body style="background:#000;display:flex;align-items:center;justify-content:center;height:95vh;margin:0;">
+  <button id="startBtn">LIVE START</button>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('startBtn');
+      btn.addEventListener('click', () => {
+        alert ✅ '按钮触发成功！可以在这里启动节奏游戏';
+      });
+    })
+  </script>
+</body>
+</html>
