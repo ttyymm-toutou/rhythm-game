@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>下落节奏音游</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  width:100vw;height:100vh;overflow:hidden;
+  background:#090b12;
+  touch-action:none;
+  font-family:sans-serif;
+}
+#app{
+  width:100vw;height:100vh;
+  position:relative;
+  background:radial-gradient(circle,#141b28,#090b12 75%);
+}
+#topUI{
+  position:absolute;top:14px;left:14px;right:14px;
+  display:flex;justify-content:space-between;
+  z-index:10;
+}
+#scoreTxt{color:#fff;font-size:18px;font-weight:bold;}
+#comboTxt{color:#ffdd77;font-size:22px;font-weight:bold;}
+#judgeText{
+  position:absolute;top:26%;left:50%;transform:translateX(-50%);
+  font-size:36px;font-weight:bold;letter-spacing:2px;
+  pointer-events:none;z-index:11;
+}
+.perfect{color:#66eeff}
+.great{color:#bbffee}
+.good{color:#88ff99}
+.miss{color:#ff4466}
+#trackWrap{
+  position:absolute;left:4%;right:4%;top:12%;bottom:16%;
+  display:flex;
+}
+.track{
+  flex:1;
+  border-left:1px solid #252f42;
+  border-right:1px solid #252f42;
+  position:relative;
+}
+#judgeLine{
+  position:absolute;left:4%;right:4%;
+  height:4px;background:#66eeff;
+  box-shadow:0 0 14px rgba(102,238,255,0.7);
+  bottom:16%;
+  z-index:2;
+}
+.note{
+  position:absolute;width:100%;height:22px;
+  border-radius:4px;
+  box-shadow:0 0 6px rgba(255,255,255,0.45);
+  z-index:3;
+}
+.track:nth-child(1) .note{background:#ff5577;}
+.track:nth-child(2) .note{background:#ff9944;}
+.track:nth-child(3) .note{background:#ffdd44;}
+.track:nth-child(4) .note{background:#88ee66;}
+.track:nth-child(5) .note{background:#44ddaa;}
+.track:nth-child(6) .note{background:#44aaff;}
+.track:nth-child(7) .note{background:#8877ff;}
+.track:nth-child(8) .note{background:#dd77ff;}
+
+#startMask{
+  position:absolute;inset:0;background:rgba(0,0,0,0.78);
+  display:flex;align-items:center;justify-content:center;
+  z-index:20;
+}
+#startBtn{
+  padding:24px 48px;font-size:24px;border:none;border-radius:18px;
+  background:linear-gradient(135deg,#66eeff,#ff88bb);
+  color:#111;font-weight:bold;
+}
+#endTip{
+  position:absolute;top:36%;left:50%;transform:translateX(-50%);
+  color:#fff;font-size:32px;display:none;z-index:12;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topUI">
+    <div id="scoreTxt">SCORE：<span id="scoreVal">0</span></div>
+    <div id="comboTxt">COMBO：<span id="comboVal">0</span></div>
+  </div>
+  <div id="judgeText"></div>
+  <div id="endTip">🎉 音乐结束，打完所有音符！</div>
+  <div id="judgeLine"></div>
+  <div id="trackWrap">
+    <div class="track" data-index="0"></div>
+    <div class="track" data-index="1"></div>
+    <div class="track" data-index="2"></div>
+    <div class="track" data-index="3"></div>
+    <div class="track" data-index="4"></div>
+    <div class="track" data-index="5"></div>
+    <div class="track" data-index="6"></div>
+    <div class="track" data-index="7"></div>
+  </div>
+  <div id="startMask">
+    <button id="startBtn">LIVE START</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  let audioCtx = null;
+  function initCtx(){
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+  }
+  function playTone(freq, duration = 0.18, type = "sine"){
+    initCtx();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+  function playKeyPress(){ playTone(720, 0.12, "triangle"); }
+  function playPerfect(){ playTone(1320, 0.25, "sine"); }
+  function playGreat(){ playTone(990, 0.22, "sine"); }
+  function playGood(){ playTone(770, 0.20, "triangle"); }
+  function playMiss(){
+    initCtx();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.32);
+    gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.32);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.32);
+  }
+
+  const scoreVal = document.getElementById('scoreVal');
+  const comboVal = document.getElementById('comboVal');
+  const judgeEl = document.getElementById('judgeText');
+  const startMask = document.getElementById('startMask');
+  const startBtn = document.getElementById('startBtn');
+  const tracks = Array.from(document.querySelectorAll('.track'));
+  const judgeLine = document.getElementById('judgeLine');
+  const endTip = document.getElementById('endTip');
+
+  const bgmUrl = "https://soundimage.org/wp-content/uploads/2026//02/The-Coin-Op-Conquistador.mp3";
+  const audio = new Audio(bgmUrl);
+  audio.volume = 0.65;
+
+  let notes = [];
+  let score = 0;
+  let combo = 0;
+  let running = false;
+  let lastTime = 0;
+  let lastSpawn = 0;
+  const spawnInterval = 220;
+
+  function showJudge(txt, cls){
+    judgeEl.innerText = txt;
+    judgeEl.className = cls;
+    clearTimeout(showJudge._t);
+    showJudge._t = setTimeout(()=>{ judgeEl.innerText = ''; judgeEl.className = ''; },700);
+  }
+
+  function spawnNote(){
+    const idx = Math.floor(Math.random() * 8);
+    const note = document.createElement('div');
+    note.className = 'note';
+    note.dataset.track = idx;
+    note.dataset.hit = 'false';
+    note.style.top = '0px';
+    tracks[idx].appendChild(note);
+    notes.push(note);
+  }
+
+  function updateNotes(){
+    const lineTop = judgeLine.getBoundingClientRect().top;
+    for(let i = notes.length - 1; i >= 0; i--){
+      const n = notes[i];
+      let t
